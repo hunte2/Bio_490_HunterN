@@ -1,0 +1,72 @@
+---
+title: "Clinical data"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+```{r}
+knitr::opts_knit$set(root.dir = normalizePath("/Users/hunter/Downloads/analysis_data.txt"))
+```
+
+```{r}
+if (!require("BiocManager", quietly = TRUE)) 
+  install.packages("BiocManager")
+BiocManager::install(version = "3.17")
+if (!require("TCGAbiolinks", quietly = TRUE)) 
+  BiocManager::install("TCGAbiolinks")
+if (!require("maftools", quietly = TRUE)) 
+  BiocManager::install("maftools")
+library(BiocManager) 
+library(TCGAbiolinks) 
+library(maftools)
+```
+
+```{r}
+clin_query <- GDCquery(project = "TCGA-BRCA", data.category = "Clinical",
+data.type = "Clinical Supplement", data.format = 'BCR Biotab')
+#GDCdownload(clin_query)
+clinical.BCRtab.all <- GDCprepare(clin_query)
+clinic <- clinical.BCRtab.all$clinical_patient_brca[-c(1,2),]
+```
+
+```{r}
+colnames(clinic)[ colnames(clinic) == "bcr_patient_barcode" ] <- "Tumor_Sample_Barcode"
+maf_query <- GDCquery(
+project = "TCGA-BRCA",
+data.category = "Simple Nucleotide Variation",
+access = "open",
+data.type = "Masked Somatic Mutation",
+workflow.type = "Aliquot Ensemble Somatic Variant Merging and Masking"
+)
+GDCdownload(maf_query)
+maf <- GDCprepare(maf_query)
+maf_object <- read.maf(maf = maf, clinicalData = clinic,
+isTCGA = TRUE)
+```
+```{r}
+colnames(clinic)[ colnames(clinic) == "bcr_patient_barcode" ] <- "Tumor_Sample_Barcode"
+maf_query <- GDCquery(
+project = "TCGA-BRCA",
+data.category = "Simple Nucleotide Variation",
+access = "open",
+data.type = "Masked Somatic Mutation",
+workflow.type = "Aliquot Ensemble Somatic Variant Merging and Masking"
+)
+GDCdownload(maf_query)
+maf <- GDCprepare(maf_query)
+maf_object <- read.maf(maf = maf, clinicalData = clinic,
+isTCGA = TRUE)
+```
+
+```{r}
+rna_query <- GDCquery(project ="TCGA-BRCA",
+data.category = "Transcriptome Profiling",
+data.type = "Gene Expression Quantification",
+workflow.type = "STAR - Counts") 
+GDCdownload(rna_query)
+rna_se <- GDCprepare(rna_query)
+
+```
+
