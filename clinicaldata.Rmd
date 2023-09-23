@@ -26,7 +26,7 @@ library(maftools)
 ```{r}
 clin_query <- GDCquery(project = "TCGA-BRCA", data.category = "Clinical",
 data.type = "Clinical Supplement", data.format = 'BCR Biotab')
-#GDCdownload(clin_query)
+GDCdownload(clin_query)
 clinical.BCRtab.all <- GDCprepare(clin_query)
 clinic <- clinical.BCRtab.all$clinical_patient_brca[-c(1,2),]
 ```
