@@ -19,33 +19,109 @@ In MAF_Tutorial.Rmd, you looked at how to analyze mutation data in terms of clin
 Load all necessary packages, read in the clinical data .csv file you have in your analysis_data folder, and instantiate the MAF_object.
 ```{r}
 knitr::opts_knit$set(root.dir = normalizePath("/Users/hunter/Desktop/QBio_490_HunterN/analysis_data"))
+clinical <- read.csv("/Users/hunter/Downloads/brca_clinical_data.csv")
 ```
 
 
 *1*
 Choose a clinical variable (or any variable from clin_rad or clin_drug) to separate your populations into two different groups and rewrite the column or create a new column with that variable as a factor. ***Do not use age or vital_status as your clinical variable.*** Hint: if your variable is continuous, you will need to determine your own cutoffs for the different levels of the factor. If your variable is categorical and has more than two possible values, choose the two that are the most common.
 ```{r}
-#colnames()
-#rownames()
-clinic$ajcc_metastasis_pathologic_pm
-ajcc <- data.frame(clinic$ajcc_metastasis_pathologic_pm)
-models <- lapply(ajcc, data = "MX")
-  
-```   
 
+pr_mask <- ifelse(clinical$pr_status_by_ihc%in% c("Positive", "Negative"), T, F)
+masked_clinical <- clinical[pr_mask,]
+pos_mask <- ifelse(masked_clinical$pr_status_by_ihc == "Positive", T, F)
+pos_patients <- masked_clinical$Tumor_Sample_Barcode[pos_mask]
+neg_patients <- masked_clinical$Tumor_Sample_Barcode[!pos_mask]
+
+
+result_table <- table(pr_status_by_ihc)
+
+result_table <- result_table[c("Positive", "Negative")]
+
+print(result_table)
+
+
+
+```   
 
 *2*
 Create a co-oncoplot with the top 10-20 (you choose) most mutated genes for the two groups. Pick one that has a large discrepancy in % mutated or type of mutations between the groups and research it. 
 Research it. What is the gene used for? Can you think of any reason for the discrepancy?
 ```{r}
+library(dplyr)
+library(tidyr)
+
+clinic$pr_status_by_ihc <- c("Positive", "Negative")
+gene <- c("GeneA", "GeneB", "GeneC", "GeneD", "GeneE", "GeneF")
+
+data <- data.frame(pr_status_by_ihc, gene)
+
+mutation_frequencies <- data %>%
+  group_by(gene, pr_status_by_ihc) %>%
+  summarise(freq = n()) %>%
+  spread(pr_status_by_ihc, freq, fill = 0) %>%
+  mutate(total = Positive + Negative)
+
+mutation_frequencies <- mutation_frequencies %>%
+  arrange(desc(abs((Positive / total) - (Negative / total))))
+
+top_genes <- mutation_frequencies$gene[1:10] 
+
+mutation_frequencies_top <- mutation_frequencies %>%
+  filter(gene %in% top_genes)
+
+barplot(
+  height = c(mutation_frequencies_top$Positive / mutation_frequencies_top$total * 100, 
+              mutation_frequencies_top$Negative / mutation_frequencies_top$total * 100),
+  col = c(rep(c("red", "blue"), each = length(top_genes))),
+  names.arg = rep(top_genes, 2), 
+  main = "Co-Oncoplot for Positive vs. Negative",
+  xlab = "Genes",
+  ylab = "Mutation Frequency (%)"
+)
+
+legend("topright", legend = c("Positive", "Negative"), fill = c("red", "blue"))
+
+
+
 
 ```
-
+The gene is the assessment of the estrogen receptor (ER) and progesterone receptor (PR) status in breast cancer tissue using immunohistochemistry (IHC) staining techniques. There is likely a discrepency via the type of mutation.
 
 *3*
 Create a contingency table with your variable and chosen gene. Run a Fisher’s Exact Test between presence of mutations for that gene and your clinical variable. Create and save a mosaic plot. 
 Interpret the output of the Fisher’s Exact Test in terms of the odds ratio and p-value.
 ```{r}
+library(vcd)
+pr_status_by_ihc <- c("Positive", "Negative")
+gene <- c("GeneA", "GeneB", "GeneC", "GeneD", "GeneE", "GeneF")
+
+data <- data.frame(pr_status_by_ihc, gene)
+
+
+target_gene <- "GeneA"
+
+contingency_table <- data %>%
+  filter(gene == target_gene) %>%
+  table()
+
+fisher_test_result <- fisher.test(contingency_table)
+
+mosaic_plot <- mosaic(contingency_table,
+                      shade = TRUE,
+                      legend = TRUE,
+                      main = paste("Mosaic Plot for", target_gene, "vs. pr_status_by_ihc"))
+
+odds_ratio <- fisher_test_result$estimate
+p_value <- fisher_test_result$p.value
+
+cat("Fisher's Exact Test Results:\n")
+cat("Odds Ratio:", odds_ratio, "\n")
+cat("P-Value:", p_value, "\n")
+
+png("mosaic_plot.png", width = 800, height = 600)
+plot(mosaic_plot)
+dev.off()
 
 ```
 
@@ -54,13 +130,40 @@ Interpret the output of the Fisher’s Exact Test in terms of the odds ratio and
 Subset your maf_object based on your chosen clinical variable and create a co-lollipop plot of your chosen gene divided between the two different clinical variable possibilities. Include descriptive names on your plot.
 Do you notice any difference in terms of mutations (e.g. sites, types, number) between the two populations?
 ```{r}
+library(maftools)
+
+
+target_gene <- "GeneX"
+
+subset_maf <- subsetMaf(maf_object, genes = target_gene)
+
+clinical_var <- subset_maf$pr_status_by_ihc 
+
+colollipop(clinical_var, gene = target_gene, maf = subset_maf, title = "Co-Lollipop Plot")
+
 
 ```
-
+There is likely differences in terms of the mutation by sites and number between the two populations.
 
 *5*
 Create your Overall_Survival_Status column and create a mafSurvival KM plot based on mutations in your chosen gene.
 Does there seem to be a difference? Hypothesize why or not based on the other analysis you did with the gene above.
 ```{r}
+target_gene <- "GeneX"
+
+subset_maf <- subsetMaf(maf_object, genes = target_gene)
+
+subset_maf$Mutation_Status <- ifelse(subset_maf$nmut > 0, 1, 0)
+
+km_plot <- mafSurvival(
+  subset_maf,
+  time = "Overall_Survival_Days", 
+  status = "Overall_Survival_Status", 
+  group = "Mutation_Status",
+  title = paste("Kaplan-Meier Survival Plot for", target_gene)
+)
+
+summary(km_plot)
 
 ```
+I'm not sure if there is a difference but there likely is as the mutation may cause additional effects. 
