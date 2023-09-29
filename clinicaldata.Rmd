@@ -7,7 +7,7 @@ output:
     df_print: paged
 ---
 ```{r}
-knitr::opts_knit$set(root.dir = normalizePath("/Users/hunter/Downloads/analysis_data.txt"))
+knitr::opts_knit$set(root.dir = normalizePath("/Users/hunter/Downloads/analysis_data"))
 ```
 
 ```{r}
@@ -26,7 +26,7 @@ library(maftools)
 ```{r}
 clin_query <- GDCquery(project = "TCGA-BRCA", data.category = "Clinical",
 data.type = "Clinical Supplement", data.format = 'BCR Biotab')
-GDCdownload(clin_query)
+#GDCdownload(clin_query)
 clinical.BCRtab.all <- GDCprepare(clin_query)
 clinic <- clinical.BCRtab.all$clinical_patient_brca[-c(1,2),]
 ```

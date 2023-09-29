@@ -1,0 +1,740 @@
+---
+title: "Transcriptomics Tutorial"
+author: Wade Boohar, Kayla Xu
+date: 09/24/23
+updated: 09/25/23
+---
+
+```{r setup}
+    knitr::opts_knit$set(root.dir = normalizePath("/Users/hunter/490")) 
+```
+
+```{r Package Setup}
+library(SummarizedExperiment)
+library(TCGAbiolinks)
+
+```
+
+Load in the RNAseq data
+
+```{r}
+rna_query <- GDCquery(project ="TCGA-BRCA",
+                      data.category = "Transcriptome Profiling",
+                      data.type = "Gene Expression Quantification",
+                      workflow.type = "STAR - Counts")
+
+rna_se <- GDCprepare(rna_query)
+
+```
+
+
+###### (1) Summarized Experiment Basics
+
+Let's take a look at rna_se (RNA Summarized Experiment). Call head() and str(). Also explore the data frame by double clicking on it from the Environment panel (or calling "View(rna_se)").
+
+```{r Exercise 1.1}
+# write code here
+head(rna_se)
+str(rna_se)
+```
+
+Use the dim() function to find the dimensions of the colData, rowRanges@elementMetadata, and unstranded dataframes. Record them below:
+
+  ~ colData (rows, cols): 1231 87
+  ~ rowRanges@elementMetadata: 60660 10
+  ~ unstranded: 60660 1231
+
+```{r Exercise 1.2}
+# write code here
+dim(rna_se$colData)
+
+dim(rna_se@rowRanges@elementMetadata)
+
+dim(rna_se@assays@data$unstranded)
+```
+
+Run the following code and fill out a description of the rows/columns of our data frames. You can use this as a cheat sheet moving forward.
+  ~ colData
+        - Rows: 
+        - Columns: 
+  ~ rowRanges@elementMetadata
+        - Rows: 
+        - Columns: 
+  ~ unstranded (in assays)
+        - Rows: 
+        - Columns: 
+  
+```{r Exercise 1.3}
+# colData: 
+rownames(rna_se@colData)
+colnames(rna_se@colData)
+
+# rowRanges:
+str(rna_se@rowRanges@elementMetadata)
+# what are the rows... Hint: Do the rows match a dimension of another dataframe?
+
+# for unstranded, don't call anything, just use your logic from earlier!
+```
+
+###### (2) ColData
+
+Using the nested dataframe colData in rna_se, view the first 15 values in the age_at_index column.
+
+```{r Exercise 2.1}
+# write code here
+```
+
+Call summary on the age_at_index column. Record the output below:
+    Min.: 
+    1st Qu.: 
+    Median: 
+    Mean: 
+    3rd Qu.: 
+    Max.: 
+    NA's: 
+    
+```{r Exercise 2.2}
+# write code here
+```
+
+Create a data frame called rna_clinical that contains data from colData.
+
+```{r Exercise 2.3}
+
+```
+
+Use the as.data.frame() function to change this from an S4 object to a data frame object.
+
+```{r Exercise 2.4}
+
+```
+
+Three columns in rna_clinical contain nested lists. To save the dataframe as a csv later, we need to first remove those columns. Using boolean masks, subset out treatments, primary_site, and disease_type
+
+```{r Exercise 2.5}
+treatments_mask <- ifelse(colnames(rna_clinical) == 'treatments', F, T)
+rna_clinical <- rna_clinical, 
+```
+
+
+###### (3) RowRanges
+
+Call head() on rowRanges@elementMetadata:
+
+```{r Exercise 3.1}
+# write code here
+
+```
+
+Create a data frame called rna_genes that contains data from elementMetadata.
+
+```{r Exercise 3.2}
+
+```
+
+Use the as.data.frame() function to change this from an S4 object to a data frame object
+
+```{r Exercise 3.3}
+
+```
+
+###### (4) Assays
+
+What are the names of the 6 assays?
+
+```{r Exercise 4.1}
+# access the assays here
+
+```
+
+Create a new data frame called "rna_counts" that contains the data from unstranded. Recall the patient with NA age data? We need to exclude that patient. We can use the same mask to do this.
+
+```{r Exercise 4.2}
+rna_counts <- rna_se@assays@data$unstraded
+```
+
+Fetch the data for the first 5 patients and the first 15 rows.
+
+```{r Exercise 4.3}
+
+
+```
+
+
+###### (5) Cleaning up your data frames
+
+Call rownames() and colnames() on rna_clinical.
+
+```{r Exercise 5.1}
+
+
+```
+
+Just like we did to "clinical", we are going to create a column in rna_clinical for age_category. Our cutoff will be "young" as <= 58 y/o, and "old" as > 58 y/o.
+
+There are three age columns in rna_clinical. We'll use the column age_at_index, because it has the fewest number of NA values (only 1).
+
+Age columns:
+  rna_clinical$age_at_diagnosis (16 NAs) (in days, not years)
+  rna_clinical$age_at_index (1 NA) 
+  rna_clinical$paper_age_at_initial_pathologic_diagnosis (19 NAs)
+  
+
+Use the information in age_at_index with an ifelse() statement to create a new column in rna_clinical called age_category. Remember ifelse(expression, x, y), where x happens if the expression is true, and y happens if it is false.
+
+```{r Exercise 5.4}
+
+```
+
+----
+
+Let's move on to rna_genes. Call rownames() and colnames() on rna_genes.
+
+```{r Exercise 5.5}
+
+```
+
+As you can see, the column names are informative, but the row names are not. Let's fix this. Use row.names() to name the rows according to gene_id.  Note: it would be nice to use gene_name instead of gene_id for the row names, but there are duplicate values in the gene_name column, and row names must be unique.
+
+```{r Exercise 5.2}
+?row.names
+
+# add row names here
+
+```
+
+----
+
+Now that rna_genes has informative row/column names, let's move on to rna_counts. Call rownames() and colnames() on rna_counts.
+
+```{r Exercise 5.7}
+
+```
+
+Uh oh! Looks like neither the row nor column names are very informative. Given what we did to the other data frames, add column and row names to rna_counts. Name the columns based on the patient barcodes (ie the column names for rna_clinical), and name the rows based on the gene id's (ie the column names for rna_gene).
+
+```{r Exercise 5.8}
+
+```
+
+Now, if we look at the data, we'll see the row names set as the gene IDs and the column names as the patient sample barcodes.
+```{r}
+View(rna_counts)
+```
+
+----
+
+The last step in cleanup is to subset out any samples that are of a normal tissue type. Call unique() on the definition column of rna_clinical.
+
+```{r Exercise 5.9}
+# write code here
+
+```
+
+Notice that there are three sample types: "Solid Tissue Normal", "Primary solid Tumor", and "Metastatic". For now, we are simply going to get rid of the "Solid Tissue Normal" samples, but keep this in mind for your midterm and final projects as these samples could provide you with a good control!
+
+Create a mask that calls "Solid Tissue Normal" FALSE, and the other two sample types TRUE.
+
+```{r Exercise 5.10}
+# write code here
+
+```
+
+You will need to apply this mask to two of our three data frames (rna_clinical, rna_genes, rna_counts). Think about which df's involve samples, and apply the mask to these data frames to subset out the normal samples. You may overwrite the data frames in this case.
+
+```{r Exercise 5.11}
+# write code here
+
+```
+
+  
+Since there still is one patients who has NA for age in our dataframes, we need to remove the patient's information form both rna_clinical and rna_counts. Use the is.na() function to accomplish this here:
+
+```{r}
+age_na_mask <-
+  
+rna_clinical <-
+rna_counts <- 
+
+```
+
+Great! Now all of our data frames are ready for exploration and analysis.
+
+  
+###### (6) Saving data as csv
+
+Loading data from TCGA can be time consuming. It's much faster to access csv files.
+
+Save rna_clinical to your local machine
+
+```{r Exercise 2.6}
+write.csv(rna_clinical, "../brca_rna_clinical_data.csv", row.names = TRUE)
+```
+
+
+Save rna_genes to your local machine.
+
+```{r Exercise 3.4}
+write.csv(rna_genes, "../brca_rna_gene_data.csv", row.names = FALSE)
+```
+
+
+Save rna_counts to your local machine (warning: this will likely take a while!)
+
+```{r Exercise 4.4}
+write.csv(rna_counts, "../brca_rna_count_data.csv", row.names = TRUE)
+```
+
+
+###### (6) Preparing for plotting
+
+Make a column in rna_clinical called five_yr_surv that contains TRUEs and FALSEs for whether a patient survived 5 years. Use days_to_death, or (if days_to_death is NULL), days_to_last_follow_up. Note: 1 year = 365.25 days.
+
+```{r Exercise 6.1}
+# fill in the nested ifelse to capture TRUE/FALSE values for whether a patient survived 5 years according to their days_to_death 
+
+five_yr_death <- ifelse()
+
+# create your column from your finalized boolean vector (there should be only T/F, no NAs) 
+rna_clinical$five_year_surv <- five_yr_death
+
+```
+
+----
+
+Recall the %in% function that allows us to check whether a value is present in a vector. Ex:
+
+```{r Exercise 6.2}
+fruit_list <- c("peach", "pomegranate", "cherry", "apricot", "kiwi")
+"apple" %in% fruit_list # output: FALSE
+"kiwi" %in% fruit_list # output: TRUE
+```
+
+Using your knowledge from the literature presentations, Google, etc., pick two genes that are important in breast cancer. List them below.
+    ~ Gene 1:
+    ~ Gene 2: 
+    
+Using the %in% function, check that these two genes are in the rna_genes data. If they aren't pick a new gene. Hint: think about which column to check in.
+
+```{r Exercise 6.3}
+# write code here
+
+
+```
+
+Create a mask for geneA and geneB where that gene is TRUE and all others are FALSE.
+
+NOTE: for the rest of this notebook, whenever you see "geneA" or "geneB", change that to the name of your gene(s) for easier reference later on.
+
+```{r Exercise 6.4}
+# write code here
+
+geneA_mask <-  # create mask based on the gene name (your mask should be true when the name is 'geneA' and false for any other gene name)
+
+geneB_mask <-  #FILL IN HERE
+```
+
+We can use this mask for a few things. First, let's use it to grab the ensembl IDs of our genes.
+
+```{r Exercise 6.5}
+geneA_ensembl <-  #FILL IN HERE # think about which column we should apply out mask to
+  
+geneB_ensembl <-  #FILL IN HERE
+```
+
+We can also use the mask to create a list that contains counts for just a single gene. (HINT: this means subsetting for just the geneA row, with all columns included)
+
+```{r Exercise 6.6}
+geneA_counts <- unlist(#FILL IN HERE) # unlist() is used to reduce a nested dimension (list within a list) so we can call summary on geneA_counts
+
+geneB_counts <- unlist(#FILL IN HERE)
+```
+
+Call summary() on geneA_counts and geneB_counts. Record the output below:
+
+  Gene A
+    ~ Min.:274
+    ~ 1st Qu.: 2883
+    ~ Median: 4446
+    ~ Mean: 5004
+    ~ 3rd Qu.: 6495
+    ~ Max.: 25897
+    
+  Gene B
+  ~ Min.: 205
+  ~ 1st Qu.: 11831
+  ~ Median: 20086
+  ~ Mean: 50336
+  ~ 3rd Qu.: 31914
+  ~ Max.: 995067
+
+```{r Exercise 6.7}
+# write code here
+
+```
+
+###### (7) Plotting
+
+Recall that plot() creates a scatterplot. Use this function to plot geneA vs geneB.
+
+```{r Exercise 7.1}
+#par(mar=c(1,1,1,1)) # run this line of code if your plot doesn't appear formatted correctly (can't see labels)
+plot(geneA_counts,
+     geneB_counts,
+     xlab = "x label here",
+     ylab = "y label here",
+     main = "title"
+)
+```
+
+Do you notice any patterns? One issue with plotting gene expression counts is that un-normalized expression tends to cluster near the bottom left corner of the scatter plot. A common technique used to better visualize the correlation between the expression of genes is to plot the log of the expressions instead.
+
+
+```{r}
+plot(log10(geneA_counts),
+     log10(geneB_counts),
+     xlab = "log of Gene A",
+     ylab = "log of Gene B",
+     main = "title"
+)
+```
+
+
+Now, do you notice any patterns? Is there a relationship between the two genes that you chose? 
+
+# Write a few sentence making observations about your plot, noting the significance of what this means, and any key takeaways:
+
+
+
+
+
+
+----
+
+Let's visualize these two genes again, this time using box plots. To get both geneA_counts and geneB_counts on one plot, make a data frame using data.frame() that contains those lists as columns. Again, if the distribution of the expression counts is too skewed, scale/normalize the data by plotting the log of the values instead.
+
+```{r Exercise 7.2}
+geneAB_counts <- data.frame(#FILL IN HERE)  # create data frame with geneA_counts and geneB_counts
+
+par(mar=c(1,1,1,1))
+boxplot(geneAB_counts,
+        xlab = "x label",
+        ylab = "ylabel")
+```
+
+# Write a few sentence making observations about your plot, noting the significance of what this means, and any key takeaways:
+
+
+
+
+----
+
+For the next plots, choose either gene A or gene B to continue with. We will be making a box plot with two boxes, one for patients who survived 5 years, and another for patients who did not.
+
+```{r Exercise 7.3}
+#par(mar=c(1,1,1,1))
+boxplot(y_axis_data ~ x_axis_data, # think about what data (gene counts or the 5 yr survival column) should be on the x vs y axes
+        xlab = "x axis label",
+        ylab = "y axis label")
+
+dev.off()
+```
+
+Does there appear to be a relationship between expression of your gene and five year survival? 
+
+# Write a few sentence making observations about your plot, noting the significance of what this means, and any key takeaways:
+
+----
+
+Create two more gene_count lists, for MKI67 and PTGS2.
+
+```{r Exercise 7.4}
+MKI67_counts <- unlist(#FILL IN HERE)
+PTGS2_counts <- unlist(#FILL IN HERE)
+```
+
+Create a Draftsman plot by filling in the code below.
+
+```{r Exercise 7.5}
+# fill in with your 4 individual gene count lists and their names
+geneABCD_counts <- data.frame(#put all your list of genes here)
+colnames(geneABCD_counts) <- c(#gene list 1, # gene list 2, # gene list 3, # gene list 4)
+
+# the following three lines set up a clustering color scheme for our plot
+# choose a column from rna_clinical to cluster based on (ex: age_category, five_yr_surv, AJCC staging, etc.)
+cols <- character(nrow(rna_clinical)) 
+cols[rna_clinical$COLUMN == VALUE] <- "blue" # fill in column and value for as many unique values are in your column (ex: 2 for age_category, "young"/"old")
+cols[rna_clinical$COLUMN == VALUE] <- "red"
+
+# run this line to create your plot!
+pairs(geneABCD_counts, col = cols, lower.panel=NULL)
+```
+
+Do there appear to be any relationships between the genes in question? Do you see any clear clustering based on your chosen clinical variables? 
+
+#Write a few sentence making observations about your plot, noting the significance of what this means, and any key takeaways:
+
+
+
+###### (8) Running Differential Expression Analysis
+
+
+```{r}
+# install "DESeq2" using BiocManager::install()
+
+# load DESeq2
+
+```
+
+```{r}
+# Read in csv files, if necessary
+
+rna_counts <- 
+rna_genes <- 
+rna_clinical <- 
+
+```
+
+# 1. Setting up and preprocessing our data
+
+Firstly, we must convert the age_category column to a factor. Recall from the intro to R notebook that a factor is a categorical data type that stores values as well as different levels (a list of unique values). For example, within a column called 'grade' we might have the levels 'Freshman', 'Sophomore', 'Junior', 'Senior'.
+
+Use factor() to convert rna_clinical$age_category into a factor.
+
+```{r}
+?factor
+
+# write code here
+rna_clinical$age_category <- factor()
+
+```
+
+After factor conversion, check the levels by printing out the following:
+
+```{r}
+head(rna_clinical$age_category)
+```
+
+Note that in addition to the first few values, we now also see "Levels: old young". This indicates that rna_clinical$age_category was successfully converted into a factor.
+
+In our analysis we can also control for variables that may skew our comparison. Let's control for stage at diagnosis (using ajcc_pathologic_stage), and one other variable of your choosing.
+
+List your chosen variable here: gender
+
+Just like we did to age_category, convert these columns into the factor data type. Then call head and record the levels.
+
+```{r}
+# write code here
+
+```
+
+For DESeq2 to run, none of our variables can contain NAs. Just to see if there are NAs in age_category, ajcc_pathologic_stage, and your chosen variable by calling sum() on is.na() on the column.
+
+```{r}
+# write code here
+
+
+```
+
+If you get a non-zero number (aka there is at least one NA value in the column), create a boolean mask and get rid of any patients with an NA value. Make sure you delete these patients from both the rna_clinical data frame and the rna_counts data frame.
+
+```{r}
+na_mask <-  # you can use multiple NA masks if you have multiple columns with NA values (or you can do it all in one!)
+  
+rna_clinical <-  # think about where the mask goes in the df[rows, columns] notation
+
+rna_counts <- # does the mask go in the same or opposite location?
+```
+
+Now, let's move on to processing the rna_counts df. Here, we should remove all genes where the total number of counts (across all patients) is less than 10.
+
+```{r}
+# use rowSums() to create a list with the total number of counts of each gene
+row_sums <- 
+
+# create a boolean mask where genes with < 10 total counts are FALSE, and genes with >= 10 total counts are TRUE
+low_counts_mask <- 
+
+# rewrite the rna_counts df, subsetting for only genes with >= 10 total counts
+rna_counts <-
+
+#update rna_genes with the low_counts_mas
+rna_genes <- 
+```
+
+Now we're ready for the analysis!
+
+# 2. Running DESeq2
+
+To break down what analysis actually takes place within the DESeq2 pipeline:
+
+1. The DESeqDataSetFromMatrix() function processes your transcript count data (rna_counts), the phenotypic data (rna_clinical), and the categories you want to compare on (the design argument) to create a DESeqDataSet object (dds). In a design formula, the last variable is the condition you want to perform DE on. Optionally, you can also control for additional covariates by including them prior to your condition (see R block below).  
+
+2. The DESeq() function runs the comparisons and statistical analysis. This will likely take the bulk of the run time. Don't worry if this takes quite a while to run, just let it take its time.
+
+3. The resultsNames() function will tell you what comparisons have been run. It’s helpful for when you have more than two levels in your experiment (in our case, there are just two, "young" and "old").
+
+4. The results() function will make the comparisons readable. The contrasts argument calculates the fold change in "young" vs. "old", with the second level in the list being the denominator in the fold change (ie the baseline for the expression calculations).
+
+```{r}
+?DESeqDataSetFromMatrix
+dds <- DESeqDataSetFromMatrix(countData = #FILL IN HERE,
+                             colData = #FILL IN HERE,
+                             design = ~covar1 + covar2 + condition)
+
+?DESeq
+dds_obj <- DESeq(dds) # note: this will likely take a long time (ie 45 minutes to 2 hours)
+
+?resultsNames
+resultsNames(dds_obj)  # see what comparisons got run
+
+# get the young vs. old comparison
+?results
+results <- results(dds_obj, format = "DataFrame", contrast = c("age_category", VALUE1, VALUE2)) # this is case sensitive so be careful to match it with your age_category factors closely!
+```
+
+# 3. Analyzing and saving the data
+
+First, explore the results df using head(), View(), and dim().
+
+```{r}
+# write code here
+
+
+```
+
+We're not interested in all of these columns, so use data.frame() to write results with the following columns in this order: gene name (from rna_genes), gene id (from results rownames), log2foldchange, pvalue, padj, -log10(padj).
+
+Rename the columns using colnames(). Note: to get -log10, simply write "-log10(fill in here)".
+
+```{r}
+# write code here, replace column#'s
+results <- data.frame()
+
+colnames(results) <- c() ## FIX column names
+
+# add gene_id as the row names for results
+row.names(results) <-
+```
+
+
+It's oftentimes most interesting to look at genes that are highly over/under expressed at a significance level p < 0.05. 
+
+First, select rows (genes) that have a padj value < 0.05.
+
+```{r}
+sig_results <-
+```
+
+Now, sort the data frame by log2foldchange, descending. To do this, use the order() function. The order() function returns a vector of the sorted indexes of your chosen data, from smallest to largest. For example:
+
+```{r EXAMPLE SHOWING HOW ORDER() WORKS}
+my_example_df = data.frame(x = c('index 1', 'index 2', 'index 3', 'index 4', 'index 5'),
+                   y = c(2,4,3,5,1))
+
+order_indexes = order(my_example_df$y) # order by column "y"
+
+# we would expect order_indexes to be c(5, 1, 3, 2, 4) since the value 2 has the index 5, the value 2 has the index 1, the value 3 has the index 3, etc.
+
+order_indexes
+
+my_example_df = my_example_df[order_indexes, ] # this rewrites the df based on the sorted rows
+my_example_df # check your df to see if it is sorted by the y values
+```
+
+Use the logic above as well as sig_results to create a dataframe called up_reg_results. Remember that upregulated genes will have a statistically significant fold change greater than a positive number threshold (eg. log2FoldChange > 1 and adjusted p-values < 0.05). 
+
+This df should be sorted by log2foldchange descending (take a look at the decreasing argument). Note that this can also be done in one line by bypassing the use of order_indexes as an intermediate variable.
+
+```{r}
+up_reg_results <- 
+```
+
+Up_reg_results should only contain the genes where the log2foldchange is > 1 (ie genes that are 2x or greater expressed in one population over the other).
+
+```{r}
+# write code here
+up_reg_results <- 
+```
+
+Repeat the same steps to create a sorted data frame called down_reg_results (this time select for all genes where log2foldchange is < -1 and sort it ascending by log2foldchange).
+
+```{r}
+# write code here
+
+```
+
+Call head() on both up_reg_results and down_reg_results.
+
+```{r}
+# write code here
+
+
+```
+
+
+Choose one up regulated (overexpressed) gene and one down regulated (underexpressed) gene and fill out the following information:
+
+Gene ensembl id:
+Log2FoldChange:
+p-adj value:
+More highly expressed in young or old patients:
+Google the gene. What is its full name, and what appears to be its function? Genecards generally has a pretty good summary:
+
+Gene ensembl id:
+Log2FoldChange:
+p-adj value:
+More highly expressed in young or old patients:
+Google the gene. What is its full name, and what appears to be its function? Genecards generally has a pretty good summary:
+
+Write the results, up_reg_results, and down_reg_results df's to analysis_data using write.csv().
+
+```{r}
+# write code here
+```
+
+# 4.  Creating volcano plots
+
+The most common way to visualize differential expression results is with a volcano plot (named because it looks like a volcano erupting). A volcano plot shows the relative expression of each gene along with the significance for each gene's result.
+
+The x-axis is log2FoldChange (ie the normalized fold change results), and the y axis is the -log10(p adjusted value).
+
+First, think conceptually about which points in the volcano plot are the most interesting. Fill out the relative expression (up-regulated/down-regulated in young patients) and significance (yes/no) for the following locations on the volcano plot:
+
+top-right genes: 
+bottom-right genes: 
+top-left genes: 
+bottom-left genes: 
+top-middle genes:
+bottom-middle genes:
+
+There are many general plotting functions you can use to create a volcano plot (ex: plot(), gglot(), etc.), but we are going to use a specialized function made particularly for volcano plots as it allows for more customization. Install and load "EnhancedVolcano".
+
+```{r}
+# install (using BiocManager) and load "EnhancedVolcano"
+
+
+```
+
+Read the package documentation section 3.1, and create a volcano plot of your own.
+https://www.bioconductor.org/packages/release/bioc/vignettes/EnhancedVolcano/inst/doc/EnhancedVolcano.html#plot-the-most-basic-volcano-plot
+
+Remember that you may need to include par(mar=c(1,1,1,1)) before your plotting function to change the margin sizes.
+
+```{r}
+# create plot here
+
+
+```
+
+Skim through section 4 of the package documentation, and create an advanced volcano plot as you see fit. Customize at least one aspect of your plot (ie color, shape, labels, etc.). Save this plot to your week8 folder as a .jpg file. For more info on saving plots, see section 3 of R_Tutorial.Rmd
+
+```{r}
+# create plot here
+```
+
+
+
+
+
+
